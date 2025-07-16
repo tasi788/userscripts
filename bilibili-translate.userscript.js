@@ -2,8 +2,8 @@
 // @name         自動翻譯輸入框內容至簡體中文
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  在輸入框輸入內容後，延遲1秒自動將其翻譯成簡體中文。
-// @description:en Automatically translates input to Simplified Chinese after a 1-second delay.
+// @description  在輸入框輸入內容後，延遲3秒自動將其翻譯成簡體中文，並確保送出訊息時使用簡體。
+// @description:en Automatically translates input to Simplified Chinese after a 3-second delay and ensures simplified text is sent.
 // @author       github.com/tasi788
 // @match        https://live.bilibili.com/*
 // @require      https://unpkg.com/opencc-js@1.0.5/dist/umd/t2cn.js
@@ -12,7 +12,7 @@
 // ==/UserScript==
 
 (function() {
-    'use_strict';
+    'use strict';
 
     // --- 請在此處配置 ---
     const inputSelector = 'textarea.chat-input'; // 例如: 'input#danmakuInput', 'textarea.chat-box', '.bilibili-player-video-danmaku-input'
@@ -64,6 +64,52 @@
         }
 
         console.log('自動翻譯腳本：已找到輸入框，監聽中...', targetElement);
+        
+        // 找到送出按鈕
+        const sendButton = document.querySelector('button.bl-button.live-skin-highlight-button-bg');
+        if (sendButton) {
+            console.log('自動翻譯腳本：找到送出按鈕，監聽中...', sendButton);
+            // 監聽送出按鈕的點擊事件
+            sendButton.addEventListener('click', function(event) {
+                // 在送出前確保文字已轉換為簡體
+                const originalText = targetElement.value;
+                if (originalText && originalText.trim() !== '') {
+                    try {
+                        const simplifiedText = openCCConverter(originalText);
+                        if (originalText !== simplifiedText) {
+                            targetElement.value = simplifiedText;
+                            // 觸發 input 事件，通知網站輸入已更改
+                            const inputEvent = new Event('input', { bubbles: true });
+                            targetElement.dispatchEvent(inputEvent);
+                            console.log('自動翻譯腳本：送出前已將文字轉換為簡體');
+                        }
+                    } catch (error) {
+                        console.error('自動翻譯腳本：送出前轉換文字時發生錯誤:', error);
+                    }
+                }
+            }, true); // 使用捕獲階段，確保在網站處理點擊事件前執行
+        } else {
+            console.log('自動翻譯腳本：未找到送出按鈕，僅監聽輸入框');
+        }
+
+        // 監聽表單提交事件
+        if (targetElement.form) {
+            targetElement.form.addEventListener('submit', function(event) {
+                // 在表單提交前確保文字已轉換為簡體
+                const originalText = targetElement.value;
+                if (originalText && originalText.trim() !== '') {
+                    try {
+                        const simplifiedText = openCCConverter(originalText);
+                        if (originalText !== simplifiedText) {
+                            targetElement.value = simplifiedText;
+                            console.log('自動翻譯腳本：表單提交前已將文字轉換為簡體');
+                        }
+                    } catch (error) {
+                        console.error('自動翻譯腳本：表單提交前轉換文字時發生錯誤:', error);
+                    }
+                }
+            }, true); // 使用捕獲階段，確保在網站處理提交事件前執行
+        }
 
         targetElement.addEventListener('input', function(event) {
             clearTimeout(debounceTimer);
@@ -98,14 +144,17 @@
                              targetElement.setSelectionRange(newLength, newLength);
                         }
 
-                        // 可選：手動觸發一次 input 或 change 事件，如果其他腳本或頁面邏輯需要感知到變化
-                        // const ev = new Event('input', { bubbles: true, cancelable: true });
-                        // targetElement.dispatchEvent(ev);
+                        // 觸發 input 和 change 事件，確保網站能夠檢測到輸入變化
+                        const inputEvent = new Event('input', { bubbles: true });
+                        targetElement.dispatchEvent(inputEvent);
+                        
+                        const changeEvent = new Event('change', { bubbles: true });
+                        targetElement.dispatchEvent(changeEvent);
                     }
                 } catch (error) {
                     console.error('自動翻譯腳本：文本轉換時發生錯誤:', error);
                 }
-            }, 3000); // 1秒延遲
+            }, 3000); // 延遲 3 秒
         });
 
         console.log('自動翻譯腳本已成功加載並監聽輸入框。');
