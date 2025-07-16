@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  在輸入框輸入內容後，延遲1秒自動將其翻譯成簡體中文。
 // @description:en Automatically translates input to Simplified Chinese after a 1-second delay.
-// @author       Cascade
+// @author       github.com/tasi788
 // @match        https://live.bilibili.com/*
 // @require      https://unpkg.com/opencc-js@1.0.5/dist/umd/t2cn.js
 // @grant        none
